@@ -1,1 +1,1 @@
-export { sum } from './sum';
+export { hmac } from './crypto/hmac';
