@@ -1,4 +1,4 @@
-import axios from 'axios';
+import axios, { AxiosResponse } from 'axios';
 
 import { hmac_sha_512 } from './crypto/hmac';
 
@@ -19,10 +19,12 @@ export class Wallet {
     this.#apiKey = apiKey;
   }
 
-  #createSignature(method: string, path: string, body: string): string {
-    // Unix timestamp in milliseconds
-    const timestamp = Date.now();
-
+  #createSignature(
+    timestamp: number,
+    method: string,
+    path: string,
+    body: string
+  ): string {
     const uppercaseMethod = method.toUpperCase();
     const message = `${timestamp}${uppercaseMethod}${path}${body}`;
     const signature = hmac_sha_512(this.#apiKey, message);
@@ -30,24 +32,34 @@ export class Wallet {
     return signature;
   }
 
-  async getAddress(assetId: string, user: string): Promise<string> {
-    const method = 'get';
-    const path = `/v1/addresses/${assetId}/${user}`;
-    const body = '';
+  #walletRequest(
+    method: string,
+    path: string,
+    body?: string
+  ): Promise<AxiosResponse> {
+    // Unix timestamp in milliseconds
+    const timestamp = Date.now();
+    body = body || '';
+    const signature = this.#createSignature(timestamp, method, path, body);
 
-    const signature = this.#createSignature(method, path, body);
-
-    const res = await axios.request({
+    return axios.request({
       headers: {
         Accept: 'application/json',
         'Content-Type': 'application/json',
-        'x-api-signature': signature,
+        'x-map3-api-signature': signature,
+        'x-map3-api-timestamp': timestamp,
       },
       method: method,
       timeout: 5 * 1000,
       url: `${this.#host}${path}`,
     });
+  }
 
+  async getAddress(assetId: string, user: string): Promise<string> {
+    const method = 'get';
+    const path = `/v1/addresses/${assetId}/${user}`;
+
+    const res = await this.#walletRequest(method, path);
     return res.data.address;
   }
 }
