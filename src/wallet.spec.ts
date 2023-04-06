@@ -6,8 +6,8 @@ describe('Wallet', () => {
   test('getAddress', async () => {
     jest
       .spyOn(axios, 'request')
-      .mockResolvedValue({ data: { address: 'test' } });
-    jest.spyOn(Date, 'now').mockReturnValue(1234567890);
+      .mockResolvedValueOnce({ data: { address: 'test' } });
+    jest.spyOn(Date, 'now').mockReturnValueOnce(1234567890);
     const wallet = new Wallet('http://keychain.prod', 'test');
 
     const address = await wallet.getAddress('ALGO', 'test');
